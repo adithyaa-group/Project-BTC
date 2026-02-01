@@ -1,25 +1,12 @@
-document.getElementById("uploadForm").onsubmit = async e => {
-  e.preventDefault();
-
-  const formData = new FormData(e.target);
-  await fetch("/upload", {
-    method: "POST",
-    body: formData
-  });
-
-  e.target.reset();
-  loadFiles();
-};
-
 async function loadFiles() {
   const res = await fetch("/files");
   const files = await res.json();
 
-  const list = document.getElementById("adminFiles");
-  list.innerHTML = "";
+  const container = document.getElementById("adminFiles");
+  container.innerHTML = "";
 
   files.forEach(file => {
-    list.innerHTML += `
+    container.innerHTML += `
       <div>
         ${file.title}
         <button onclick="deleteFile('${file._id}')">Delete</button>
@@ -28,8 +15,35 @@ async function loadFiles() {
   });
 }
 
+document.getElementById("uploadForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+
+  const res = await fetch("/upload", {
+    method: "POST",
+    body: formData
+  });
+
+  if (!res.ok) {
+    alert("Upload failed");
+    return;
+  }
+
+  e.target.reset();
+  loadFiles();
+});
+
 async function deleteFile(id) {
-  await fetch(`/files/${id}`, { method: "DELETE" });
+  const res = await fetch(`/files/${id}`, {
+    method: "DELETE"
+  });
+
+  if (!res.ok) {
+    alert("Delete failed");
+    return;
+  }
+
   loadFiles();
 }
 
