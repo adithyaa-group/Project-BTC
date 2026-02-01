@@ -1,0 +1,60 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: #141414;
+  color: white;
+}
+
+header {
+  background: black;
+  padding: 20px;
+  text-align: center;
+  color: red;
+  font-size: 24px;
+}
+
+.admin {
+  margin: 40px auto;
+  width: 300px;
+  text-align: center;
+}
+
+input[type="file"] {
+  margin-bottom: 15px;
+}
+
+button {
+  padding: 10px 20px;
+  background: red;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background: darkred;
+}
+
+#media-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.media-card {
+  background: #222;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+video, img {
+  width: 100%;
+  border-radius: 6px;
+}
