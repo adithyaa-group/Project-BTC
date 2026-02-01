@@ -126,37 +126,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadMedia() {
   try {
-    const res = await fetch("/api/media");
-    const files = await res.json();
+    const res = await fetch("/api/media", { cache: "no-store" });
+    const data = await res.json();
 
-    container.innerHTML = "";
+    mediaContainer.innerHTML = "";
 
-    if (files.length === 0) {
-      container.innerHTML = "<p>No media available</p>";
+    if (data.length === 0) {
+      mediaContainer.innerHTML = "<p>No content available</p>";
       return;
     }
 
-    files.forEach(file => {
-      const card = document.createElement("div");
-      card.className = "media-card";
-
-      if (file.type === "image") {
-        card.innerHTML = `<img src="${file.url}" />`;
-      } else {
-        card.innerHTML = `
-          <video controls>
-            <source src="${file.url}">
-          </video>
-        `;
+    data.forEach(item => {
+      if (item.type === "image") {
+        const img = document.createElement("img");
+        img.src = item.url;
+        img.className = "media-item";
+        mediaContainer.appendChild(img);
       }
 
-      container.appendChild(card);
+      if (item.type === "video") {
+        const video = document.createElement("video");
+        video.src = item.url;
+        video.controls = true;
+        video.className = "media-item";
+        mediaContainer.appendChild(video);
+      }
     });
-
   } catch (err) {
-    console.error(err);
-    container.innerHTML = "<p>Error loading media</p>";
+    console.error("Error loading media", err);
   }
 }
 
+/* 🔁 Load immediately */
 loadMedia();
+
+/* 🔁 Auto refresh every 5 seconds */
+setInterval(loadMedia, 5000);
