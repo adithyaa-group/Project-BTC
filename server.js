@@ -8,7 +8,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ✅ IMPORTANT: correct import
-const uploadRoutes = require("./upload");
+const uploadRoutes = require("./routes/upload");
 
 // ✅ API routes
 app.use("/api", uploadRoutes);
