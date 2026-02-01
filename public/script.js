@@ -162,3 +162,4 @@ loadMedia();
 
 /* 🔁 Auto refresh every 5 seconds */
 setInterval(loadMedia, 5000);
+
