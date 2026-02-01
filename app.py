@@ -16,7 +16,19 @@ CORS(app)
 
 # MongoDB Atlas connection (Render.com compatible)
 MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/referraldb')
-client = MongoClient(MONGO_URI)
+
+# Handle both mongodb:// and mongodb+srv://
+if MONGO_URI.startswith('mongodb+srv://'):
+    client = MongoClient(MONGO_URI)
+else:
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+
+try:
+    client.admin.command('ping')
+    print("✅ MongoDB connected successfully!")
+except Exception as e:
+    print(f"❌ MongoDB connection failed: {e}")
+
 db = client['referraldb']
 fs = gridfs.GridFS(db)
 
