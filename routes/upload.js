@@ -1,38 +1,45 @@
 const express = require("express");
-const multer = require("multer");
-const cloudinary = require("../utils/cloudinary");
-
 const router = express.Router();
 
-// Multer memory storage (Render-safe)
+const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// UPLOAD ROUTE
+// ✅ Upload route
 router.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    const stream = cloudinary.uploader.upload_stream(
-      { resource_type: "auto" },
-      (error, result) => {
-        if (error) {
-          return res.status(500).json({ success: false });
-        }
+    const fileType = req.file.mimetype.startsWith("video")
+      ? "video"
+      : req.file.mimetype.startsWith("image")
+      ? "image"
+      : "raw";
 
-        res.json({
-          url: result.secure_url,
-          type: result.resource_type,
-          public_id: result.public_id
-        });
-      }
+    const result = await cloudinary.uploader.upload(
+      `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
+      { resource_type: fileType }
     );
 
-    stream.end(req.file.buffer);
+    res.json({
+      success: true,
+      url: result.secure_url,
+      public_id: result.public_id,
+      type: fileType
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false });
   }
 });
 
-// DELETE ROUTE
+// ✅ Delete route
 router.delete("/delete/:public_id/:type", async (req, res) => {
   try {
     const { public_id, type } = req.params;
@@ -47,3 +54,6 @@ router.delete("/delete/:public_id/:type", async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
+
+// 🔴 THIS LINE WAS MISSING / WRONG EARLIER
+module.exports = router;
