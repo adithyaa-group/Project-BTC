@@ -4,16 +4,20 @@ const cloudinary = require("../utils/cloudinary");
 
 const router = express.Router();
 
-// Memory storage (IMPORTANT for Render)
+// Multer memory storage (Render-safe)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+// UPLOAD ROUTE
 router.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    const result = await cloudinary.uploader.upload_stream(
+    const stream = cloudinary.uploader.upload_stream(
       { resource_type: "auto" },
       (error, result) => {
-        if (error) return res.status(500).json(error);
+        if (error) {
+          return res.status(500).json({ success: false });
+        }
+
         res.json({
           url: result.secure_url,
           type: result.resource_type,
@@ -22,24 +26,21 @@ router.post("/upload", upload.single("file"), async (req, res) => {
       }
     );
 
-router.delete("/delete/:public_id", async (req, res) => {
-  try {
-    const { public_id } = req.params;
-
-    await cloudinary.uploader.destroy(public_id, {
-      resource_type: "auto"
-    });
-
-    res.json({ success: true });
+    stream.end(req.file.buffer);
   } catch (err) {
-    res.status(500).json({ error: "Delete failed" });
+    res.status(500).json({ success: false });
   }
 });
 
-
-    result.end(req.file.buffer);
+// DELETE ROUTE
+router.delete("/delete/:public_id", async (req, res) => {
+  try {
+    await cloudinary.uploader.destroy(req.params.public_id, {
+      resource_type: "auto"
+    });
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: "Upload failed" });
+    res.status(500).json({ success: false });
   }
 });
 

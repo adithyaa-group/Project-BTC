@@ -1,45 +1,67 @@
+/* =========================
+   ADMIN PAGE LOGIC
+========================= */
+
 const uploadForm = document.getElementById("uploadForm");
 const adminMedia = document.getElementById("admin-media");
 
-function loadAdminMedia() {
-  adminMedia.innerHTML = "";
-  const media = JSON.parse(localStorage.getItem("media")) || [];
-
-  media.forEach((item, index) => {
-    const div = document.createElement("div");
-    div.className = "media-card";
-
-    div.innerHTML = `
-      ${item.type === "video"
-        ? `<video src="${item.url}" controls></video>`
-        : `<img src="${item.url}" />`
-      }
-      <button onclick="deleteMedia('${item.public_id}', ${index})">
-        Delete
-      </button>
-    `;
-
-    adminMedia.appendChild(div);
-  });
+function getMedia() {
+  return JSON.parse(localStorage.getItem("media")) || [];
 }
 
-async function deleteMedia(publicId, index) {
-  if (!confirm("Delete this file permanently?")) return;
+function saveMedia(media) {
+  localStorage.setItem("media", JSON.stringify(media));
+}
 
-  const res = await fetch(`/api/delete/${publicId}`, {
-    method: "DELETE"
-  });
+function loadAdminMedia() {
+  if (!adminMedia) return;
 
-  const data = await res.json();
+  adminMedia.innerHTML = "";
+  const media = getMedia();
 
-  if (data.success) {
-    let media = JSON.parse(localStorage.getItem("media")) || [];
-    media.splice(index, 1);
-    localStorage.setItem("media", JSON.stringify(media));
-    loadAdminMedia();
-  } else {
-    alert("Delete failed");
+  if (media.length === 0) {
+    adminMedia.innerHTML = "<p style='color:gray'>No uploads yet</p>";
+    return;
   }
+
+  media.forEach((item, index) => {
+    const card = document.createElement("div");
+    card.className = "media-card";
+
+    let content = "";
+    if (item.type === "video") {
+      content = `<video src="${item.url}" controls></video>`;
+    } else if (item.type === "image") {
+      content = `<img src="${item.url}">`;
+    } else {
+      content = `<a href="${item.url}" target="_blank">Open File</a>`;
+    }
+
+    card.innerHTML = `
+      ${content}
+      <button class="delete-btn">Delete</button>
+    `;
+
+    card.querySelector(".delete-btn").onclick = async () => {
+      if (!confirm("Delete permanently?")) return;
+
+      const res = await fetch(`/api/delete/${item.public_id}`, {
+        method: "DELETE"
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        media.splice(index, 1);
+        saveMedia(media);
+        loadAdminMedia();
+      } else {
+        alert("Delete failed");
+      }
+    };
+
+    adminMedia.appendChild(card);
+  });
 }
 
 if (uploadForm) {
@@ -47,6 +69,7 @@ if (uploadForm) {
     e.preventDefault();
 
     const formData = new FormData(uploadForm);
+
     const res = await fetch("/api/upload", {
       method: "POST",
       body: formData
@@ -54,12 +77,47 @@ if (uploadForm) {
 
     const data = await res.json();
 
-    let media = JSON.parse(localStorage.getItem("media")) || [];
-    media.push(data);
-    localStorage.setItem("media", JSON.stringify(media));
-
-    loadAdminMedia();
+    if (data.url) {
+      const media = getMedia();
+      media.push(data);
+      saveMedia(media);
+      loadAdminMedia();
+      uploadForm.reset();
+    } else {
+      alert("Upload failed");
+    }
   });
 
   loadAdminMedia();
 }
+
+/* =========================
+   HOME PAGE LOGIC
+========================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+  const container = document.getElementById("media-container");
+  if (!container) return;
+
+  const media = getMedia();
+
+  if (media.length === 0) {
+    container.innerHTML = "<p style='color:gray'>No media available</p>";
+    return;
+  }
+
+  media.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "media-card";
+
+    if (item.type === "video") {
+      card.innerHTML = `<video src="${item.url}" controls></video>`;
+    } else if (item.type === "image") {
+      card.innerHTML = `<img src="${item.url}">`;
+    } else {
+      card.innerHTML = `<a href="${item.url}" target="_blank">Download</a>`;
+    }
+
+    container.appendChild(card);
+  });
+});
