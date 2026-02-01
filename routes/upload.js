@@ -33,15 +33,17 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 // DELETE ROUTE
-router.delete("/delete/:public_id", async (req, res) => {
+router.delete("/delete/:public_id/:type", async (req, res) => {
   try {
-    await cloudinary.uploader.destroy(req.params.public_id, {
-      resource_type: "auto"
+    const { public_id, type } = req.params;
+
+    await cloudinary.uploader.destroy(public_id, {
+      resource_type: type
     });
+
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false });
   }
 });
-
-module.exports = router;

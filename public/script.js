@@ -45,9 +45,10 @@ function loadAdminMedia() {
     card.querySelector(".delete-btn").onclick = async () => {
       if (!confirm("Delete permanently?")) return;
 
-      const res = await fetch(`/api/delete/${item.public_id}`, {
-        method: "DELETE"
-      });
+      const res = await fetch(`/api/delete/${item.public_id}/${item.type}`,
+        { method: "DELETE" }
+        );
+
 
       const data = await res.json();
 
