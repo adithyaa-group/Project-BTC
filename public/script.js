@@ -4,6 +4,7 @@
 
 const uploadForm = document.getElementById("uploadForm");
 const adminMedia = document.getElementById("admin-media");
+const container = document.getElementById("mediaContainer");
 
 function getMedia() {
   return JSON.parse(localStorage.getItem("media")) || [];
@@ -122,3 +123,40 @@ document.addEventListener("DOMContentLoaded", () => {
     container.appendChild(card);
   });
 });
+
+async function loadMedia() {
+  try {
+    const res = await fetch("/api/media");
+    const files = await res.json();
+
+    container.innerHTML = "";
+
+    if (files.length === 0) {
+      container.innerHTML = "<p>No media available</p>";
+      return;
+    }
+
+    files.forEach(file => {
+      const card = document.createElement("div");
+      card.className = "media-card";
+
+      if (file.type === "image") {
+        card.innerHTML = `<img src="${file.url}" />`;
+      } else {
+        card.innerHTML = `
+          <video controls>
+            <source src="${file.url}">
+          </video>
+        `;
+      }
+
+      container.appendChild(card);
+    });
+
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = "<p>Error loading media</p>";
+  }
+}
+
+loadMedia();
