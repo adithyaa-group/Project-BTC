@@ -17,9 +17,25 @@ router.post("/upload", upload.single("file"), async (req, res) => {
         res.json({
           url: result.secure_url,
           type: result.resource_type,
+          public_id: result.public_id
         });
       }
     );
+
+router.delete("/delete/:public_id", async (req, res) => {
+  try {
+    const { public_id } = req.params;
+
+    await cloudinary.uploader.destroy(public_id, {
+      resource_type: "auto"
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
+
 
     result.end(req.file.buffer);
   } catch (err) {

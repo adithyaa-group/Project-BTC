@@ -1,15 +1,52 @@
-// ADMIN UPLOAD
 const uploadForm = document.getElementById("uploadForm");
+const adminMedia = document.getElementById("admin-media");
+
+function loadAdminMedia() {
+  adminMedia.innerHTML = "";
+  const media = JSON.parse(localStorage.getItem("media")) || [];
+
+  media.forEach((item, index) => {
+    const div = document.createElement("div");
+    div.className = "media-card";
+
+    div.innerHTML = `
+      ${item.type === "video"
+        ? `<video src="${item.url}" controls></video>`
+        : `<img src="${item.url}" />`
+      }
+      <button onclick="deleteMedia('${item.public_id}', ${index})">
+        Delete
+      </button>
+    `;
+
+    adminMedia.appendChild(div);
+  });
+}
+
+async function deleteMedia(publicId, index) {
+  if (!confirm("Delete this file permanently?")) return;
+
+  const res = await fetch(`/api/delete/${publicId}`, {
+    method: "DELETE"
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    let media = JSON.parse(localStorage.getItem("media")) || [];
+    media.splice(index, 1);
+    localStorage.setItem("media", JSON.stringify(media));
+    loadAdminMedia();
+  } else {
+    alert("Delete failed");
+  }
+}
 
 if (uploadForm) {
   uploadForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const status = document.getElementById("status");
-    status.innerText = "Uploading...";
-
     const formData = new FormData(uploadForm);
-
     const res = await fetch("/api/upload", {
       method: "POST",
       body: formData
@@ -17,33 +54,12 @@ if (uploadForm) {
 
     const data = await res.json();
 
-    if (data.url) {
-      let media = JSON.parse(localStorage.getItem("media")) || [];
-      media.push(data);
-      localStorage.setItem("media", JSON.stringify(media));
-      status.innerText = "Upload successful!";
-    } else {
-      status.innerText = "Upload failed!";
-    }
+    let media = JSON.parse(localStorage.getItem("media")) || [];
+    media.push(data);
+    localStorage.setItem("media", JSON.stringify(media));
+
+    loadAdminMedia();
   });
-}
 
-// USER HOME DISPLAY
-const container = document.getElementById("media-container");
-
-if (container) {
-  const media = JSON.parse(localStorage.getItem("media")) || [];
-
-  media.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "media-card";
-
-    if (item.type === "video") {
-      card.innerHTML = `<video src="${item.url}" controls></video>`;
-    } else {
-      card.innerHTML = `<img src="${item.url}" />`;
-    }
-
-    container.appendChild(card);
-  });
+  loadAdminMedia();
 }

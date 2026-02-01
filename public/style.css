@@ -58,3 +58,9 @@ video, img {
   width: 100%;
   border-radius: 6px;
 }
+
+.media-card button {
+  width: 100%;
+  margin-top: 8px;
+  background: crimson;
+}
