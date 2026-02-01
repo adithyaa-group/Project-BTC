@@ -1,0 +1,34 @@
+media-stream-platform/
+│
+├── server.js                # Main Express server
+├── package.json             # Dependencies & scripts
+├── package-lock.json
+│
+├── data/
+│   └── data.json            # Media metadata (NO database)
+│
+├── uploads/                 # Media files (Persistent Disk mount)
+│   └── .gitkeep
+│
+├── public/                  # Frontend files
+│   ├── index.html           # User Home
+│   ├── admin.html           # Admin Panel
+│   ├── login.html           # Admin Login
+│   │
+│   ├── css/
+│   │   └── style.css
+│   │
+│   ├── js/
+│   │   ├── auth.js
+│   │   ├── admin.js
+│   │   └── user.js
+│
+├── routes/                  # API routes
+│   ├── upload.js            # File upload route
+│   └── media.js             # Fetch / delete media
+│
+├── middleware/
+│   └── auth.js              # Admin auth middleware
+│
+├── .gitignore
+└── README.md
