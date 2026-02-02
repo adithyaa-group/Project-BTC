@@ -14,23 +14,23 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 CORS(app)
 
-# MongoDB Atlas connection (Render.com compatible)
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/referraldb')
+# FORCE MongoDB Atlas connection for Render
+MONGO_URI = os.environ.get('MONGO_URI')
+if not MONGO_URI:
+    raise Exception("🚫 MONGO_URI environment variable is REQUIRED!")
 
-# Handle both mongodb:// and mongodb+srv://
-if MONGO_URI.startswith('mongodb+srv://'):
-    client = MongoClient(MONGO_URI)
-else:
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-
+print(f"🔗 Using MongoDB URI: {MONGO_URI[:50]}...")  # Debug log
+client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 try:
     client.admin.command('ping')
-    print("✅ MongoDB connected successfully!")
+    print("✅ MongoDB Atlas connected successfully!")
 except Exception as e:
     print(f"❌ MongoDB connection failed: {e}")
+    raise e
 
 db = client['referraldb']
 fs = gridfs.GridFS(db)
+
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
