@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Library</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <h2>🔴 Media Library</h2>
+        <button onclick="logout()" class="btn-secondary">Logout</button>
+    </nav>
+
+    <div class="container">
+        <div class="media-section">
+            <h2>📁 Available Media</h2>
+            <div id="mediaGrid" class="media-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        async function checkAuth() {
+            const res = await fetch('/api/check-auth');
+            const data = await res.json();
+            if (!data.authenticated) window.location.href = '/';
+        }
+        checkAuth();
+
+        async function loadMedia() {
+            const res = await fetch('/api/media');
+            const media = await res.json();
+            
+            const grid = document.getElementById('mediaGrid');
+            
+            if (media.length === 0) {
+                grid.innerHTML = '<p class="no-media">No media available yet</p>';
+                return;
+            }
+            
+            grid.innerHTML = media.map(item => `
+                <div class="media-card">
+                    ${getPreview(item)}
+                    <div class="media-info">
+                        <h3>${item.title}</h3>
+                        <p>${item.description || 'No description'}</p>
+                        <p class="meta">
+                            ${formatSize(item.fileSize)} • 
+                            ${item.format ? item.format.toUpperCase() : 'FILE'} • 
+                            ${new Date(item.uploadedAt).toLocaleDateString()}
+                        </p>
+                        <div class="actions">
+                            <a href="${item.secureUrl}" target="_blank" class="btn-small">View</a>
+                            <a href="/api/download/${item._id}" class="btn-small">Download</a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getPreview(item) {
+            const type = item.resourceType || item.fileType?.split('/')[0];
+            
+            if (type === 'image') {
+                return `<img src="${item.secureUrl}" alt="${item.title}" loading="lazy">`;
+            }
+            if (type === 'video') {
+                return `<video controls><source src="${item.secureUrl}" type="${item.fileType}"></video>`;
+            }
+            return `<div class="file-icon">📄</div>`;
+        }
+
+        function formatSize(bytes) {
+            if (!bytes) return 'Unknown';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function logout() {
+            fetch('/api/logout', { method: 'POST' }).then(() => window.location.href = '/');
+        }
+
+        loadMedia();
+    </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <h2>🔴 Admin Panel - Cloudinary Storage</h2>
+        <button onclick="logout()" class="btn-secondary">Logout</button>
+    </nav>
+
+    <div class="container">
+        <div class="upload-box">
+            <h2>☁️ Upload to Cloud</h2>
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="title" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="description" rows="3" placeholder="Optional description..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>File (Images, Videos, Documents)</label>
+                    <input type="file" id="file" required>
+                    <small style="color: #999;">Max 50MB • Stored permanently on Cloudinary</small>
+                </div>
+                <button type="submit" class="btn-primary">Upload to Cloud</button>
+                <div class="message" id="uploadMsg"></div>
+            </form>
+        </div>
+
+        <div class="media-section">
+            <h2>📁 Manage Media</h2>
+            <div id="mediaGrid" class="media-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        async function checkAuth() {
+            const res = await fetch('/api/check-auth');
+            const data = await res.json();
+            if (!data.authenticated || !data.isAdmin) window.location.href = '/';
+        }
+        checkAuth();
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('file', document.getElementById('file').files[0]);
+            
+            const msg = document.getElementById('uploadMsg');
+            msg.textContent = '⏳ Uploading to Cloudinary...';
+            msg.className = 'message';
+            
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    msg.textContent = '✅ Uploaded to cloud successfully!';
+                    msg.className = 'message success';
+                    document.getElementById('uploadForm').reset();
+                    loadMedia();
+                } else {
+                    msg.textContent = '❌ ' + data.error;
+                    msg.className = 'message error';
+                }
+            } catch (error) {
+                msg.textContent = '❌ Upload failed';
+                msg.className = 'message error';
+            }
+        });
+
+        async function loadMedia() {
+            const res = await fetch('/api/media');
+            const media = await res.json();
+            
+            const grid = document.getElementById('mediaGrid');
+            
+            if (media.length === 0) {
+                grid.innerHTML = '<p class="no-media">No media uploaded yet. Upload your first file!</p>';
+                return;
+            }
+            
+            grid.innerHTML = media.map(item => `
+                <div class="media-card">
+                    ${getPreview(item)}
+                    <div class="media-info">
+                        <h3>${item.title}</h3>
+                        <p>${item.description || 'No description'}</p>
+                        <p class="meta">
+                            ${formatSize(item.fileSize)} • 
+                            ${item.format ? item.format.toUpperCase() : 'FILE'} • 
+                            ${new Date(item.uploadedAt).toLocaleDateString()}
+                        </p>
+                        <p class="meta" style="color: #0f0;">☁️ Stored on Cloudinary</p>
+                        <div class="actions">
+                            <a href="${item.secureUrl}" target="_blank" class="btn-small">View</a>
+                            <a href="/api/download/${item._id}" class="btn-small">Download</a>
+                            <button onclick="deleteMedia('${item._id}')" class="btn-danger">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getPreview(item) {
+            const type = item.resourceType || item.fileType?.split('/')[0];
+            
+            if (type === 'image') {
+                return `<img src="${item.secureUrl}" alt="${item.title}" loading="lazy">`;
+            }
+            if (type === 'video') {
+                return `<video controls><source src="${item.secureUrl}" type="${item.fileType}"></video>`;
+            }
+            return `<div class="file-icon">📄</div>`;
+        }
+
+        function formatSize(bytes) {
+            if (!bytes) return 'Unknown';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        async function deleteMedia(id) {
+            if (!confirm('Delete this media from Cloudinary?')) return;
+            
+            try {
+                const res = await fetch(`/api/media/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadMedia();
+                } else {
+                    alert('Failed to delete');
+                }
+            } catch (error) {
+                alert('Error deleting media');
+            }
+        }
+
+        function logout() {
+            fetch('/api/logout', { method: 'POST' }).then(() => window.location.href = '/');
+        }
+
+        loadMedia();
+    </script>
+</body>
+</html>
