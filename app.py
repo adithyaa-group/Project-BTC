@@ -10,13 +10,13 @@ from datetime import datetime
 import secrets
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
+app.secret_key = os.environ.get('SECRET_KEY', 'supersecretproductionkey987654321')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 CORS(app)
 
 # FORCE MongoDB Atlas connection for Render
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/referraldb')
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb+srv://Surya_1714:Surya@1234@projectbtc.2unlcca.mongodb.net/referraldb?retryWrites=true&w=majority')
 print(f"🔗 MongoDB URI: {MONGO_URI[:50]}...")  # Debug log
 
 try:
