@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError, ConfigurationError
 from bson import ObjectId
 import os
 import gridfs
@@ -15,21 +16,31 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 CORS(app)
 
 # FORCE MongoDB Atlas connection for Render
-MONGO_URI = os.environ.get('MONGO_URI')
-if not MONGO_URI:
-    raise Exception("🚫 MONGO_URI environment variable is REQUIRED!")
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/referraldb')
+print(f"🔗 MongoDB URI: {MONGO_URI[:50]}...")  # Debug log
 
-print(f"🔗 Using MongoDB URI: {MONGO_URI[:50]}...")  # Debug log
-client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 try:
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=10000)
     client.admin.command('ping')
-    print("✅ MongoDB Atlas connected successfully!")
+    print("✅ MongoDB connected successfully!")
+except ServerSelectionTimeoutError:
+    print("⚠️  MongoDB unavailable - using local fallback")
+    client = MongoClient('mongodb://localhost:27017/referraldb')
 except Exception as e:
-    print(f"❌ MongoDB connection failed: {e}")
-    raise e
+    print(f"❌ MongoDB error: {e}")
+    client = None
 
-db = client['referraldb']
-fs = gridfs.GridFS(db)
+if client:
+    db = client['referraldb']
+    try:
+        fs = gridfs.GridFS(db)
+        print("✅ GridFS ready!")
+    except:
+        fs = None
+        print("⚠️  GridFS unavailable")
+else:
+    db = None
+    fs = None
 
 
 # Ensure upload directory exists
