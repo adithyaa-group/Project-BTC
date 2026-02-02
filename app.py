@@ -65,17 +65,22 @@ def signup():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        role = request.form['role']  # 'admin' or 'user'
+        role = request.form['role']
+        
+        # ✅ SAFE DB CHECK
+        if db is None:
+            flash('Database unavailable. Please try again later.')
+            return render_template('signup.html')
         
         # Check if user exists
         if db.users.find_one({'username': username}):
             flash('Username already exists!')
             return render_template('signup.html')
         
-        # Hash password (simple for demo, use bcrypt in production)
+        # Create user
         user_id = db.users.insert_one({
             'username': username,
-            'password': password,  # In production, hash this
+            'password': password,
             'role': role,
             'created_at': datetime.utcnow()
         }).inserted_id
@@ -90,6 +95,11 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        
+        # ✅ SAFE DB CHECK
+        if db is None:
+            flash('Database unavailable. Please try again later.')
+            return render_template('login.html')
         
         user = db.users.find_one({'username': username, 'password': password})
         if user:
@@ -112,51 +122,6 @@ def referral():
     redirect_url = REFERRAL_ROLES.get(role, 'home')
     return redirect(url_for(redirect_url))
 
-@app.route('/admin', methods=['GET', 'POST'])
-def admin():
-    if 'user_id' not in session or session.get('role') != 'admin':
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            flash('No file selected')
-            return redirect(request.url)
-        
-        file = request.files['file']
-        if file.filename == '':
-            flash('No file selected')
-            return redirect(request.url)
-        
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_id = fs.put(file, filename=filename, metadata={
-                'uploaded_by': session['username'],
-                'upload_date': datetime.utcnow()
-            })
-            
-            db.files.insert_one({
-                'file_id': file_id,
-                'filename': filename,
-                'uploaded_by': session['username'],
-                'upload_date': datetime.utcnow()
-            })
-            flash('File uploaded successfully!')
-    
-    # Get all files
-    files = []
-    file_docs = db.files.find().sort('upload_date', -1)
-    for doc in file_docs:
-        file_info = fs.get(doc['file_id'])
-        files.append({
-            'id': str(doc['_id']),
-            'filename': doc['filename'],
-            'uploaded_by': doc['uploaded_by'],
-            'upload_date': doc['upload_date'],
-            'file_id': str(doc['file_id'])
-        })
-    
-    return render_template('admin.html', files=files)
-
 @app.route('/admin/delete/<file_id>')
 def delete_file(file_id):
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -178,17 +143,20 @@ def home():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    # Get all files
+    # ✅ SAFE FILE LISTING
     files = []
-    file_docs = db.files.find().sort('upload_date', -1)
-    for doc in file_docs:
-        file_info = fs.get(doc['file_id'])
-        files.append({
-            'filename': doc['filename'],
-            'uploaded_by': doc['uploaded_by'],
-            'upload_date': doc['upload_date'],
-            'file_id': str(doc['file_id'])
-        })
+    if db:
+        file_docs = db.files.find().sort('upload_date', -1)
+        for doc in file_docs:
+            try:
+                files.append({
+                    'filename': doc['filename'],
+                    'uploaded_by': doc['uploaded_by'],
+                    'upload_date': doc['upload_date'],
+                    'file_id': str(doc['file_id'])
+                })
+            except:
+                continue
     
     return render_template('home.html', files=files)
 
